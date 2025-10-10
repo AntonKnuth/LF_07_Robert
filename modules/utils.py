@@ -1,0 +1,1 @@
+# kleine Helferfunktionen, z. B. Zeitstempel generieren

@@ -2,7 +2,7 @@ import sqlite3
 from pathlib import Path
 from datetime import datetime
 
-DB_PATH = Path(__file__).parent.parent / "data/lofisensor_data.db"
+DB_PATH = Path(__file__).parent.parent / "data/robert.db"
 
 def connect_db():
     """Creates connection to SQLite-Database."""
@@ -15,7 +15,7 @@ def create_table():
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS sensor_data (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                time DATETIME NOT NULL,
+                timestamp DATETIME NOT NULL,
                 sensor TEXT NOT NULL,
                 value REAL NOT NULL
             );
@@ -27,7 +27,7 @@ def insert_sensor_data(sensor_data: list[tuple[datetime, str, float]]):
     with connect_db() as conn:
         cursor = conn.cursor()
         cursor.executemany(
-            "INSERT INTO sensor_data (time, sensor, value) VALUES (?, ?, ?);",
+            "INSERT INTO sensor_data (timestamp, sensor, value) VALUES (?, ?, ?);",
             sensor_data
         )
         conn.commit()
@@ -39,7 +39,7 @@ def get_current_sensor_value():
         cursor.execute("""
             SELECT sensor, value
             FROM sensor_data
-            WHERE time = (SELECT MAX(time) FROM sensor_data);
+            WHERE timestamp = (SELECT MAX(timestamp) FROM sensor_data);
         """)
         return cursor.fetchall()
     

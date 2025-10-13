@@ -9,20 +9,19 @@ DHT dht(DHT_PIN, DHTTYPE);
 void setup() {
   Serial.begin(9600);
   while(!Serial);
-  Serial.println("start"); //For debugging
-
   dht.begin();
 }
 
 void loop() {
-  delay(2000);
+  delay(5000);
   float humidity = dht.readHumidity();
   float tempInCelsius = dht.readTemperature();
   if (isnan(humidity) || isnan(tempInCelsius)){
-    Serial.println(F("Failed to read from DHT"));
+    Serial.println(F("Failed to read from THC"));
     return;
     }
-  Serial.print(F("Luftfeuchtigkeit: ")); Serial.print(humidity); Serial.println("%");
-  Serial.print(F("Temperatur: ")); Serial.print(tempInCelsius); Serial.println("°C");
+  Serial.print(tempInCelsius);  
+  Serial.print(",");
+  Serial.println(humidity);
   
 }

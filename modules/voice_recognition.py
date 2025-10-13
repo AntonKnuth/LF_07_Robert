@@ -6,48 +6,78 @@ import json
 import time
 import os
 
-# === VOSK MODEL LADEN ===
-print("Lade Vosk-Modell...")
+def setup_recognize_speech():
+    mic_stream = get_microphone_stream()
+    wake_word_detector = get_wake_word_detector()
+    speech_recognizer = get_speech_recognizer()
 
-model_path = os.path.abspath("../model/model")
-model = Model(model_path)
+    return mic_stream, wake_word_detector, speech_recognizer
+    
 
-rec = KaldiRecognizer(model, 16000)
+def recognize_speech(mic_stream, wake_word_detector, speech_recognizer) -> str:
+    print("Bereit. Sag 'Robert', um zu starten.")
 
-# === HOTWORD ===
-porcupine = pvporcupine.create(
-  access_key='D9SyE/UBhAweDksvLLc/SvVPemxnW7KBcFyejFB42NVIIaV7V7PdAQ==',
-  keyword_paths=['/home/lenn/code/speech_assistant/model/hotword/Robert_de_raspberry-pi_v3_0_0.ppn'],
-  model_path='/home/lenn/code/speech_assistant/model/hotword/porcupine_params_de.pv'
-)
+    detect_wake_word(wake_word_detector, mic_stream)
 
-pa = pyaudio.PyAudio()
-stream = pa.open(rate=porcupine.sample_rate,
-                 channels=1,
-                 format=pyaudio.paInt16,
-                 input=True,
-                 frames_per_buffer=porcupine.frame_length)
+    print("Wake-Word erkannt! Sprich jetzt:")
 
-print("Bereit. Sag 'Raspberry' oder 'Computer', um zu starten.")
+    captured_text = capture_spoken_text(speech_recognizer, mic_stream)
 
-while True:
-    pcm = stream.read(porcupine.frame_length, exception_on_overflow=False)
-    pcm_unpacked = struct.unpack_from("h" * porcupine.frame_length, pcm)
-    keyword_index = porcupine.process(pcm_unpacked)
+    print(captured_text)
+    print("Aufnahme beendet.\n")
 
-    if keyword_index >= 0:
-        print("✅ Hotword erkannt! Sprich jetzt...")
-        start_time = time.time()
+    return captured_text
+    
 
-        # Sprachaufnahme für 8 Sekunden
-        frames = []
-        while time.time() - start_time < 8:
-            data = stream.read(4000, exception_on_overflow=False)
-            if rec.AcceptWaveform(data):
-                res = json.loads(rec.Result())
-                text = res.get("text", "")
-                if text:
-                    print("➡️ Gesagt:", text)
 
-        print("⏹️ Aufnahme beendet. Warte auf nächstes Hotword...\n")
+def get_wake_word_detector():
+    detector = pvporcupine.create(
+        access_key='D9SyE/UBhAweDksvLLc/SvVPemxnW7KBcFyejFB42NVIIaV7V7PdAQ==',
+        keyword_paths=['/home/lenn/code/speech_assistant/model/hotword/Robert_de_raspberry-pi_v3_0_0.ppn'],
+        model_path='/home/lenn/code/speech_assistant/model/hotword/porcupine_params_de.pv'
+    )
+
+    return detector
+
+def get_speech_recognizer(model_dir: str = "model/model_test", sample_rate: int = 16000):
+    model_path = os.path.abspath(model_dir)
+    model = Model(model_path)
+    rec = KaldiRecognizer(model, sample_rate)
+
+    return rec
+
+def get_microphone_stream(sample_rate: int = 16000, frame_length: int = 512):
+    pa = pyaudio.PyAudio()
+    stream = pa.open(rate=sample_rate,
+                    channels=1,
+                    format=pyaudio.paInt16,
+                    input=True,
+                    frames_per_buffer=frame_length)
+    
+    return stream
+
+def detect_wake_word(detector, stream):
+    while True:
+        pcm = stream.read(detector.frame_length, exception_on_overflow=False)
+        pcm_unpacked = struct.unpack_from("h" * detector.frame_length, pcm)
+        keyword_index = detector.process(pcm_unpacked)
+
+        if keyword_index >= 0:
+            break
+
+def capture_spoken_text(recognizer, stream, silence_threshold=4) -> str:
+    last_speech_time = time.time()
+    collected_text = ""
+
+    while time.time() - last_speech_time < silence_threshold:
+        data = stream.read(4000, exception_on_overflow=False)
+        if recognizer.AcceptWaveform(data):
+            res = json.loads(recognizer.Result())
+            text = res.get("text", "")
+            if text:
+                print(text)
+                collected_text += " " + text
+                last_speech_time = time.time()
+
+    return collected_text.strip()
 

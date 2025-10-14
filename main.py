@@ -1,16 +1,20 @@
 from modules import voice_recognition
 from modules import insert
+from fastapi import BackgroundTasks, FastAPI
+import threading
 
 def main():
     try:
-        mic_stream, wake_word_detector, speech_recognizer = voice_recognition.setup_recognize_speech()
         
-        dht_stream = insert
+        mic_stream, wake_word_detector, speech_recognizer = voice_recognition.setup_recognize_speech()
         
         while True:
             print(voice_recognition.recognize_speech(mic_stream, wake_word_detector, speech_recognizer))
-            dht_stream.read_Temp_and_Humid_data()
-    
+
+            thread = insert.create_thread()
+            thread.start()
+            thread.join()
+            
     except Exception as e:
         print(f"Error: {e}")
         raise

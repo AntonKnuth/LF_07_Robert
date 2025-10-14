@@ -91,10 +91,18 @@ int writeOnDisplay(String message, int counter){
 
 void ledColor(){
   led.setRGB(255, 0, 0);
-  delay(1000);
+  delay(500);
+  led.setRGB(100,0,0);
+  delay(500);
   led.setRGB(0, 255, 0);
-  delay(1000);
+  delay(500);
+  led.setRGB(0,100,0);
+  delay(500);
   led.setRGB(0, 0, 255);
-  delay(1000);
+  delay(500);
+  led.setRGB(0,0,100);
+  delay(500);
   led.setRGB(255, 255, 255);
+  delay(500);
+  led.setRGB(100, 100, 100);
 }

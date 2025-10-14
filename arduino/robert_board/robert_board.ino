@@ -32,6 +32,7 @@ int counter =0 ;
 
 void setup() {
   Serial.begin(9600);
+  Serial.setTimeout(1000);
   while(!Serial);
   dht.begin();
   display.begin(LCD_COLUMNS, LCD_ROWS);
@@ -42,10 +43,15 @@ void loop() {
   delay(2000);
   
   writeTempAndHumidData();
-  
-  counter = writeOnDisplay("XD", counter);
-
-  readFromRasp();
+  String readInput="\n";
+  if(Serial.available() > 0){
+    String readInput = Serial.readStringUntil('\n');
+    if (readInput !="") {
+      writeOnDisplay(readInput);
+    }
+    delay(500);
+    
+  }
   
   ledColor();
 }
@@ -63,30 +69,29 @@ void writeTempAndHumidData(){
   Serial.println(humidity);
 }
 
-void readFromRasp(){
-  if(Serial.available() > 0){
-    String received = Serial.readStringUntil('\\n');
-    Serial.println(received);
-  }
+String readFromRasp(){
+    if(Serial.available() > 0){
+      return Serial.readString();
+    }
 }
 
-int writeOnDisplay(String message, int counter){
+void writeOnDisplay(String message){
     display.clear();
-  if(counter%2==0){
-    //Setze den Cursor auf die obere Reihe
     display.setCursor(0,0);
-    display.print("Moin!");
-   
-  }
-  else{
-    //Setze den Cursor auf die untere Reihe
-    display.setCursor(0,1);
-    display.print(message);
-  }
-  counter++;
-  if(counter>1)
-    return 0;
-  return counter;
+    if(message.length() > 16 && message.length() < 33){
+      String mPart1 = message.substring(0,15);
+      String mPart2 = message.substring(16);
+     
+      display.print(mPart1);
+      display.setCursor(0,1);
+      display.print(mPart2);
+    }
+    else if(message.length() < 16){
+      display.print(message);
+    }
+    else {
+      display.print("Message too big!");
+    }
 }
 
 void ledColor(){

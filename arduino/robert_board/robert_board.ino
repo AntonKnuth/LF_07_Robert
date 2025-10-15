@@ -25,7 +25,7 @@
 
 LiquidCrystal_PCF8574 display(LCD_ADDRESS);
 
-MQ135 gasSensor = MQ135(0);
+MQ135 gasSensor = MQ135(0, (150*1.2));
 
 RGBLED led(LED_PIN_RED, LED_PIN_GREEN, LED_PIN_BLUE);
 
@@ -34,6 +34,7 @@ DHT dht(DHT_PIN, DHTTYPE);
 float rzeroMin;
 float rzeroMax;
 int counter =0 ;
+bool read=false;
 
 void setup() {
   rzeroMin = 10000;
@@ -48,6 +49,12 @@ void setup() {
 
 void loop() {
   delay(2000);
+ if(Serial.available() > 0 && read){
+    Serial.println(readFromRasp());
+    read=false;
+  }
+  else{
+  
   
   String sensorData = writeTempAndHumidandPpmData();
   //String readInput="\n";
@@ -63,6 +70,8 @@ void loop() {
   writeOnDisplay(sensorData);
   
   ledColor();
+  read=true;
+  }
 }
 
 String writeTempAndHumidandPpmData(){
@@ -84,7 +93,7 @@ String writeTempAndHumidandPpmData(){
 
 String readFromRasp(){
     if(Serial.available() > 0){
-      return Serial.readString();
+      return Serial.readStringUntil('\n');
     }
 }
 

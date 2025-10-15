@@ -23,6 +23,10 @@
 #define SCROLL_DELAY 150
 #define BACKLIGHT 255
 
+int r = 255;
+int g = 255;
+int b = 255;
+
 LiquidCrystal_PCF8574 display(LCD_ADDRESS);
 
 MQ135 gasSensor = MQ135(0, (150*1.2));
@@ -50,7 +54,9 @@ void setup() {
 void loop() {
   delay(2000);
  if(Serial.available() > 0 && read){
-    Serial.println(readFromRasp());
+  String received = readFromRasp();
+  setLed(received);
+    Serial.println(received);
     read=false;
   }
   else{
@@ -69,7 +75,7 @@ void loop() {
 
   writeOnDisplay(sensorData);
   
-  ledColor();
+  //ledColor();
   read=true;
   }
 }
@@ -140,3 +146,35 @@ void resetDisplay(){
   display.clear();
   display.setCursor(0,0);
 }
+
+void setLed(String command){
+  if(command == "LichtAn"){
+    r = 255;
+    g = 255;
+    b = 255;
+    showColor(r,g,b);
+  }
+  if(command == "Blue"){
+    r = 0;
+    g = 0;
+    b = 255;
+    showColor(r,g,b);
+  }
+    
+   if(command == "Darker"){
+    r=substractRGB(r);
+    g=substractRGB(g);
+    b=substractRGB(b);
+    showColor(r,g,b);
+    }
+  }
+  
+void showColor(int r, int g, int b){
+  led.setRGB(r, g, b);
+  }
+int substractRGB(int col){
+  int newCol = col+1 - 32;
+  if( newCol< 0)
+    return 0;
+  return newCol;
+  }

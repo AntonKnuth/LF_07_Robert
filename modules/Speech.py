@@ -9,6 +9,6 @@ def speak(text):
 	engine.runAndWait()
 	engine.stop()
 	
-def creat_speaking_thread():
-	return threading.Thread(target=speak,args=(['Guten Morgen, ich bin Robert']))
+def creat_speaking_thread(text):
+	return threading.Thread(target=speak,args=([text]))
 

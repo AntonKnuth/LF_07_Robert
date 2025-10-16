@@ -4,4 +4,4 @@ venv/
 __pycache__/
 *.pyc
 # Modelle / grosse Dateien nicht in Git
-model/*
+models/*

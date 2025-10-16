@@ -64,7 +64,7 @@ def detect_wake_word(detector, stream):
         if keyword_index >= 0:
             break
 
-def capture_spoken_text(recognizer, stream, start_threshold=2, silence_threshold=0.8) -> str:
+def capture_spoken_text(recognizer, stream, start_threshold=3, silence_threshold=0.7) -> str:
     start_time = time.time()
     last_speech_time = start_time
     collected_text = ""

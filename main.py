@@ -6,7 +6,7 @@ from fastapi import BackgroundTasks, FastAPI
 import threading
 from modules import intent_recognizer
 from modules import handle_command
-from modules.onnxruntime_genai import *
+from modules.llm_model import *
 
 # einfach ohne absoluten Pfad
 #intent_recognizer.init_intent_model()
@@ -19,24 +19,24 @@ def main():
         while True:
             spoken_text = voice_recognition.recognize_speech(mic_stream, wake_word_detector, speech_recognizer)
 
-            command = intent_recognizer.handle_text(spoken_text)
+            intent_recognizer.handle_text(spoken_text)
 
-            if (command == "frage_ki"):
-                answer = generate_response(spoken_text)
-                print(answer)
-                #print("KI")
-            else:
-                handle_command.handle_command(command)
+            # if (command == "frage_ki"):
+            #     answer = generate_response(spoken_text)
+            #     print(answer)
+            #     #print("KI")
+            # else:
+            #     handle_command.handle_command(command)
 
             #voice_thread = create_voice_thread()
-            data_thread = insert.create_thread()
-            speaking_thread = Speech.creat_speaking_thread("Irgendein Text lul")
+            #data_thread = insert.create_thread()
+            #speaking_thread = Speech.creat_speaking_thread("Irgendein Text lul")
             #voice_thread.start()
-            data_thread.start()
-            speaking_thread.start()
-            data_thread.join()
+            #data_thread.start()
+            #speaking_thread.start()
+            #data_thread.join()
             #voice_thread.join()
-            speaking_thread.join()
+            #speaking_thread.join()
     except KeyboardInterrupt:
         pass
             

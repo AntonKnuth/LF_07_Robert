@@ -32,24 +32,26 @@ def insert_sensor_data(sensor_data: list[tuple[datetime, str, float]]):
         )
         conn.commit()
 
-def get_current_sensor_value():
-    """Select current sensor data"""
+def get_current_sensor_value(sensor_name):
     with connect_db() as conn:
         cursor = conn.cursor()
         cursor.execute("""
-            SELECT sensor, value
+            SELECT value
             FROM sensor_data
-            WHERE timestamp = (SELECT MAX(timestamp) FROM sensor_data);
-        """)
-        return cursor.fetchall()
-    
-def get_average_sensor_value():
-    """Select average value per sensor."""
+            WHERE sensor = ?
+            ORDER BY timestamp DESC
+            LIMIT 1;
+        """, (sensor_name,))
+        result = cursor.fetchone()
+        return result[0] if result else None
+
+def get_average_sensor_value(sensor_name):
     with connect_db() as conn:
         cursor = conn.cursor()
         cursor.execute("""
-            SELECT sensor, AVG(value) AS average_value
+            SELECT AVG(value)
             FROM sensor_data
-            GROUP BY sensor;
-        """)
-        return cursor.fetchall()
+            WHERE sensor = ?;
+        """, (sensor_name,))
+        result = cursor.fetchone()
+        return result[0] if result else None

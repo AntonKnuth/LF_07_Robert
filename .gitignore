@@ -5,3 +5,4 @@ __pycache__/
 *.pyc
 # Modelle / grosse Dateien nicht in Git
 models/*
+ProvesOfConcepts/Read-Write-Test/__pycache__/write.cpython-313.pyc

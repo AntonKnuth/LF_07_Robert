@@ -23,9 +23,13 @@
 #define SCROLL_DELAY 150
 #define BACKLIGHT 255
 
+int r = 255;
+int g = 255;
+int b = 255;
+
 LiquidCrystal_PCF8574 display(LCD_ADDRESS);
 
-MQ135 gasSensor = MQ135(0);
+MQ135 gasSensor = MQ135(0, (150*1.2));
 
 RGBLED led(LED_PIN_RED, LED_PIN_GREEN, LED_PIN_BLUE);
 
@@ -34,6 +38,7 @@ DHT dht(DHT_PIN, DHTTYPE);
 float rzeroMin;
 float rzeroMax;
 int counter =0 ;
+bool read=false;
 
 void setup() {
   rzeroMin = 10000;
@@ -48,6 +53,14 @@ void setup() {
 
 void loop() {
   delay(2000);
+ if(Serial.available() > 0 && read){
+  String received = readFromRasp();
+  setLed(received);
+    Serial.println(received);
+    read=false;
+  }
+  else{
+  
   
   String sensorData = writeTempAndHumidandPpmData();
   //String readInput="\n";
@@ -62,7 +75,9 @@ void loop() {
 
   writeOnDisplay(sensorData);
   
-  ledColor();
+  //ledColor();
+  read=true;
+  }
 }
 
 String writeTempAndHumidandPpmData(){
@@ -84,7 +99,7 @@ String writeTempAndHumidandPpmData(){
 
 String readFromRasp(){
     if(Serial.available() > 0){
-      return Serial.readString();
+      return Serial.readStringUntil('\n');
     }
 }
 
@@ -131,3 +146,35 @@ void resetDisplay(){
   display.clear();
   display.setCursor(0,0);
 }
+
+void setLed(String command){
+  if(command == "LichtAn"){
+    r = 255;
+    g = 255;
+    b = 255;
+    showColor(r,g,b);
+  }
+  if(command == "Blue"){
+    r = 0;
+    g = 0;
+    b = 255;
+    showColor(r,g,b);
+  }
+    
+   if(command == "Darker"){
+    r=substractRGB(r);
+    g=substractRGB(g);
+    b=substractRGB(b);
+    showColor(r,g,b);
+    }
+  }
+  
+void showColor(int r, int g, int b){
+  led.setRGB(r, g, b);
+  }
+int substractRGB(int col){
+  int newCol = col+1 - 32;
+  if( newCol< 0)
+    return 0;
+  return newCol;
+  }

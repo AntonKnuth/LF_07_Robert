@@ -38,7 +38,7 @@ def check_environment_conditions(temp, humid, ppm):
         messages.append("Luft zu feucht!")
         has_not_spoken = True
 
-    if ppm > 1500:
+    if ppm > 1000:
         messages.append("Schlechte Luft!")
         has_not_spoken = True
 

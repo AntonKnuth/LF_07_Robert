@@ -1,29 +1,49 @@
 from modules.llm_model import *
 from modules.database import *
 import pyttsx3
+import serial
+from .serial_port import ser
+
+def send_command(command: str):
+    try:
+        ser.write(f"{command}\n".encode('utf-8'))
+    except Exception as e:
+        print(f"Fehler beim Senden an Arduino: {e}")
 
 def lampe_an():
-    print("Lampe wurde eingeschaltet.")
+    print("Lampe eingeschaltet")
+    send_command("led_on")
 
 def lampe_aus():
-    print("Lampe wurde ausgeschaltet.")
+    print("Lampe ausgeschaltet")
+    send_command("led_off")
 
-def lampe_farbe(farbe):
-    print(f"Lampe auf {farbe} gestellt.")
+def lampe_farbe(farbe: str):
+    print(f"Lampe auf {farbe} gestellt")
+    send_command(farbe.lower())
 
 def licht_heller():
-    print("Licht wurde heller gemacht.")
+    print("Licht heller")
+    send_command("brighter")
 
 def licht_dunkler():
-    print("Licht wurde dunkler gemacht.")
+    print("Licht dunkler")
+    send_command("darker")
 
 engine = pyttsx3.init()
+
+for v in engine.getProperty('voices'):
+    if "de" in v.id.lower() or "german" in v.name.lower():
+        engine.setProperty('voice', v.id)
+        break
+    engine.setProperty('rate', 180)
+    engine.setProperty('volume', 1.0)
+
 def spreche(text):
     print(text)
     engine.say(text)
     engine.runAndWait()
 
-# --- Methoden ---
 def temperatur_abfragen():
     wert = get_current_sensor_value("Temperatur")
     if wert is not None:
@@ -39,30 +59,30 @@ def temperatur_durchschnittlich():
         spreche("Keine Temperaturdaten verfügbar.")
 
 def feuchtigkeit_abfragen():
-    wert = get_current_sensor_value("Feuchtigkeit")
+    wert = get_current_sensor_value("Luftfeuchtigkeit")
     if wert is not None:
         spreche(f"Aktuelle Luftfeuchtigkeit: {wert:.1f}%")
     else:
         spreche("Keine Feuchtigkeitsdaten verfügbar.")
 
 def feuchtigkeit_durchschnittlich():
-    wert = get_average_sensor_value("Feuchtigkeit")
+    wert = get_average_sensor_value("Luftfeuchtigkeit")
     if wert is not None:
         spreche(f"Durchschnittliche Luftfeuchtigkeit: {wert:.1f}%")
     else:
         spreche("Keine Feuchtigkeitsdaten verfügbar.")
 
 def luftqualitaet_abfragen():
-    wert = get_current_sensor_value("Luftqualität")
+    wert = get_current_sensor_value("PPM")
     if wert is not None:
-        spreche(f"Aktuelle Luftqualität: {wert:.1f} AQI")
+        spreche(f"Aktuelle Luftqualität: {wert:.1f} PPM")
     else:
         spreche("Keine Luftqualitätsdaten verfügbar.")
 
 def luftqualitaet_durchschnittlich():
-    wert = get_average_sensor_value("Luftqualität")
+    wert = get_average_sensor_value("PPM")
     if wert is not None:
-        spreche(f"Durchschnittliche Luftqualität: {wert:.1f} AQI")
+        spreche(f"Durchschnittliche Luftqualität: {wert:.1f} PPM")
     else:
         spreche("Keine Luftqualitätsdaten verfügbar.")
 
@@ -88,7 +108,7 @@ FARBEN = {
 
 FRAGEWORTE = [
     "wer", "was", "wie", "warum", "wo", "wann", "welche", "welcher",
-    "welches", "wieviel", "wieviele", "wofür", "wozu"
+    "welches", "wieviel", "wieviele", "wofür", "wozu", "gib", "gibt"
 ]
 
 def contains_any(text, keywords):
@@ -144,7 +164,6 @@ def handle_text(text):
     if contains_any(text, FRAGEWORTE):
         print(f"[Info] Frage erkannt: '{text}' Anfrage an KI")
 
-        #text = "halte dich etwas kürzer: \"" + text + "\""
         generate_response(text)
         return "frage_ki"
     else:

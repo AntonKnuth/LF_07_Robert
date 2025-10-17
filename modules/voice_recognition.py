@@ -84,7 +84,6 @@ def capture_spoken_text(recognizer, stream, start_threshold=3, silence_threshold
             partial = json.loads(recognizer.PartialResult()).get("partial", "").strip()
             # WICHTIG: Partial-Ergebnisse als Hinweis für 'keine Stille' behandeln
             if partial:
-                # optional: nur updaten, wenn partial eine Mindestlänge hat (z.B. >1 Zeichen)
                 last_speech_time = time.time()
 
         now = time.time()
@@ -94,22 +93,3 @@ def capture_spoken_text(recognizer, stream, start_threshold=3, silence_threshold
 
     recognizer.Reset()
     return collected_text.strip()
-
-
-
-# def capture_spoken_text(recognizer, stream, start_threshold=8, silence_threshold=2) -> str:
-#     start_time = time.time()
-#     last_speech_time = time.time()
-#     collected_text = ""
-
-#     while time.time() - start_time < start_threshold or time.time() - last_speech_time < silence_threshold:
-#         data = stream.read(4000, exception_on_overflow=False)
-#         if recognizer.AcceptWaveform(data):
-#             res = json.loads(recognizer.Result())
-#             text = res.get("text", "")
-#             if text:
-#                 print(text)
-#                 collected_text += " " + text
-#                 last_speech_time = time.time()
-
-#     return collected_text.strip()

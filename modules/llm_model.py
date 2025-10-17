@@ -5,14 +5,12 @@ import time
 import onnxruntime_genai as engine
 import pyttsx3
 
-# -----------------------------------------------------
-# 🔊 Text-to-Speech im Hintergrund (nicht blockierend)
-# -----------------------------------------------------
+# Text-to-Speech im Hintergrund (nicht blockierend)
+
 def tts_worker(text_queue):
     """Liest Textstücke aus der Queue und spricht sie mit pyttsx3"""
     engine_tts = pyttsx3.init()
 
-    # Deutsche Stimme auswählen (wenn vorhanden)
     for v in engine_tts.getProperty('voices'):
         if "de" in v.id.lower() or "german" in v.name.lower():
             engine_tts.setProperty('voice', v.id)
@@ -28,7 +26,6 @@ def tts_worker(text_queue):
         try:
             chunk = text_queue.get(timeout=0.5)
 
-            # Thread beenden, wenn STOP-Signal kommt
             if chunk == "__STOP__":
                 break
 
@@ -37,7 +34,6 @@ def tts_worker(text_queue):
 
             buffer += chunk
 
-            # Satzweise oder nach Zeitintervall sprechen
             if any(p in buffer for p in [".", "?", "!", "\n"]) or (time.time() - last_speak_time > 2):
                 if buffer.strip():
                     engine_tts.say(buffer.strip())
@@ -49,9 +45,8 @@ def tts_worker(text_queue):
             continue
 
 
-# -----------------------------------------------------
-# 🧩 KI-Modell laden
-# -----------------------------------------------------
+# KI-Modell laden
+
 MODULE_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.dirname(MODULE_DIR)
 
@@ -75,16 +70,9 @@ chat_tpl = '<|user|>\n{input}<|end|>\n<|assistant|>'
 
 print("Let's chat!\n")
 
+# Antwort generieren + Streaming-TTS
 
-# -----------------------------------------------------
-# 🚀 Antwort generieren + Streaming-TTS
-# -----------------------------------------------------
 def generate_response(text):
-    """
-    Erzeugt eine Antwort vom Modell und liest sie parallel per TTS vor.
-    Englische Hinweise wie '(Note: ...)', '**', 'As an AI model', oder
-    'Note to the user:' werden direkt vor der TTS-Ausgabe herausgefiltert.
-    """
     prompt = chat_tpl.format(input=text)
     input_tokens = tokenizer.encode(prompt)
 
@@ -110,7 +98,7 @@ def generate_response(text):
             next_token = generator.get_next_tokens()[0]
             decoded = tokenizer_stream.decode(next_token)
 
-            # --- Englische Hinweise direkt filtern ---
+            # Englische Hinweise direkt filtern
             lower_decoded = decoded.strip().lower()
             if (
                 lower_decoded.startswith("(note:") or
@@ -129,14 +117,12 @@ def generate_response(text):
         print("\n")
 
     except KeyboardInterrupt:
-        print("\n⛔ Abgebrochen durch Benutzer.")
+        print("\nAbgebrochen durch Benutzer.")
     finally:
-        # Stop-Signal an TTS schicken und Generator schließen
         text_queue.put("__STOP__")
         tts_thread.join()
         del generator
 
-    # Optional: Restbereinigung (Leerzeichen, Zeilenumbrüche)
     response_text = response_text.strip()
 
     return response_text

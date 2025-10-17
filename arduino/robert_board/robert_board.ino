@@ -1,14 +1,9 @@
-
 #include "DHT.h"
 #include "MQ135.h"
-//#include "Arduino.h"
 #include "LiquidCrystal_PCF8574.h"
-#include <Transition.h>
-#include <RGB.h>
-#include <RGBLED.h>
 #include "RGBLED.h"
 
-//#define LCD_ADDRESS 0x3F
+//#define LCD_ADDRESS 0x3F /*if the define below does not work replace the line below with this line*/
 #define LCD_ADDRESS 0x27
 
 #define DHT_PIN 2
@@ -20,95 +15,71 @@
 
 #define LCD_ROWS 2
 #define LCD_COLUMNS 16
-#define SCROLL_DELAY 150
 #define BACKLIGHT 255
 
-int r = 255;
-int g = 255;
-int b = 255;
+int r = 0;
+int g = 0;
+int b = 0;
 
 LiquidCrystal_PCF8574 display(LCD_ADDRESS);
-
 MQ135 gasSensor = MQ135(0, (150*1.2));
-
 RGBLED led(LED_PIN_RED, LED_PIN_GREEN, LED_PIN_BLUE);
-
 DHT dht(DHT_PIN, DHTTYPE);
 
-float rzeroMin;
-float rzeroMax;
-int counter =0 ;
-bool read=false;
+bool readFlag = false;
 
 void setup() {
-  rzeroMin = 10000;
-  rzeroMax = 0;
   Serial.begin(9600);
-  Serial.setTimeout(1000);
-  while(!Serial);
+  while (!Serial);
   dht.begin();
   display.begin(LCD_COLUMNS, LCD_ROWS);
   display.setBacklight(BACKLIGHT);
+
+  // LED initial aus
+  showColor(r, g, b);
 }
 
 void loop() {
   delay(2000);
- if(Serial.available() > 0 && read){
-  String received = readFromRasp();
-  setLed(received);
-    Serial.println(received);
-    read=false;
-  }
-  else{
-  
-  
-  String sensorData = writeTempAndHumidandPpmData();
-  //String readInput="\n";
-  /*if(Serial.available() > 0){
-    String readInput = Serial.readStringUntil('\n');
-    if (readInput !="") {
-      writeOnDisplay(readInput);
-    }
-    delay(500);
-    
-  }*/
 
-  writeOnDisplay(sensorData);
-  
-  //ledColor();
-  read=true;
+  // Prüfen auf serielle Befehle
+  if (Serial.available() > 0) {
+    String command = Serial.readStringUntil('\n');
+    command.trim();
+    handleSerialCommand(command); // LED nur hier ändern
+  }
+
+  // Sensorwerte auslesen
+  if (readFlag) {
+    String sensorData = writeTempAndHumidandPpmData();
+    writeOnDisplay(sensorData);
+    readFlag = false;
+  } else {
+    readFlag = true;
   }
 }
 
-String writeTempAndHumidandPpmData(){
+String writeTempAndHumidandPpmData() {
   float ppm = gasSensor.getPPM();
   float humidity = dht.readHumidity();
   float tempInCelsius = dht.readTemperature();
-  if (isnan(humidity) || isnan(tempInCelsius)){
+
+  if (isnan(humidity) || isnan(tempInCelsius)) {
     Serial.println(F("Failed to read from THC"));
-    return;
+    return "";
   }
-  
-  Serial.print(tempInCelsius);  
-  Serial.print(",");
-  Serial.print(humidity);
-  Serial.print(",");
-  Serial.println(ppm);
-  return String(tempInCelsius)+","+String(humidity)+","+String(ppm);
+
+  // Sensorwerte mit Prefix senden
+  Serial.println("SENSOR:" + String(tempInCelsius) + "," + String(humidity) + "," + String(ppm));
+  return String(tempInCelsius) + "," + String(humidity) + "," + String(ppm);
 }
 
-String readFromRasp(){
-    if(Serial.available() > 0){
-      return Serial.readStringUntil('\n');
-    }
-}
-
-void writeOnDisplay(String message){
+void writeOnDisplay(String message) {
   int sep1 = message.indexOf(',');
-  int sep2 = message.indexOf(',', sep1+1);
+  int sep2 = message.indexOf(',', sep1 + 1);
   String temp = message.substring(0, sep1);
-  String humid = message.substring(sep1 +1, sep2);
-  String ppm = message.substring(sep2+1);
+  String humid = message.substring(sep1 + 1, sep2);
+  String ppm = message.substring(sep2 + 1);
 
   resetDisplay();
   outputData("Temp:", temp, ("\xDF""C"));
@@ -116,65 +87,81 @@ void writeOnDisplay(String message){
   outputData("Humid:", humid, "%");
   delay(2000);
   resetDisplay();
-  outputData("Luftq.:", ppm, "ppm");
-}
-void ledColor(){
-  led.setRGB(255, 0, 0);
-  delay(500);
-  led.setRGB(100,0,0);
-  delay(500);
-  led.setRGB(0, 255, 0);
-  delay(500);
-  led.setRGB(0,100,0);
-  delay(500);
-  led.setRGB(0, 0, 255);
-  delay(500);
-  led.setRGB(0,0,100);
-  delay(500);
-  led.setRGB(255, 255, 255);
-  delay(500);
-  led.setRGB(100, 100, 100);
+  outputData("Luftqualitaet:", "", "");
+  display.setCursor(0,1);
+  outputData("", ppm, "ppm");
+
+  // Falls Python eine Warnung schickt:
+  if (Serial.available() > 0) {
+    String warning = Serial.readStringUntil('\n');
+    
+    resetDisplay();
+    if(warning.length() > 16)
+    {
+      String part1 = warning.substring(0,16);
+      String part2 = warning.substring(17,32);
+      display.print(part1);
+      display.setCursor(0,1);
+      display.print(part2);
+      delay(3000);
+      return;
+      
+      }
+    display.print(warning);
+    delay(3000);
+  }
 }
 
-void outputData(String prefix, String data, String suffix){
+
+void outputData(String prefix, String data, String suffix) {
   display.print(prefix);
   display.print(data);
   display.print(suffix);
 }
 
-void resetDisplay(){
+void resetDisplay() {
   display.clear();
   display.setCursor(0,0);
 }
 
-void setLed(String command){
-  if(command == "LichtAn"){
-    r = 255;
-    g = 255;
-    b = 255;
-    showColor(r,g,b);
-  }
-  if(command == "Blue"){
-    r = 0;
-    g = 0;
-    b = 255;
-    showColor(r,g,b);
-  }
-    
-   if(command == "Darker"){
-    r=substractRGB(r);
-    g=substractRGB(g);
-    b=substractRGB(b);
-    showColor(r,g,b);
-    }
-  }
-  
-void showColor(int r, int g, int b){
-  led.setRGB(r, g, b);
-  }
-int substractRGB(int col){
-  int newCol = col+1 - 32;
-  if( newCol< 0)
-    return 0;
+void showColor(int rVal, int gVal, int bVal) {
+  led.setRGB(rVal, gVal, bVal);
+}
+
+int substractRGB(int col) {
+  int newCol = col + 1 - 80;
+  if (newCol < 0) return 0;
   return newCol;
+}
+
+void handleSerialCommand(String cmd) {
+  cmd.toLowerCase();
+
+  if (cmd == "lichtan" || cmd == "led_on") {
+    r = 255; g = 255; b = 255;
+  } else if (cmd == "lichtaus" || cmd == "led_off") {
+    r = 0; g = 0; b = 0;
+  } else if (cmd == "rot") {
+    r = 255; g = 0; b = 0;
+  } else if (cmd == "grün") {
+    r = 0; g = 255; b = 0;
+  } else if (cmd == "blau") {
+    r = 0; g = 0; b = 255;
+    } else if (cmd == "weiß") {
+    r = 255; g = 255; b = 255;
+  } else if (cmd == "darker") {
+    r = substractRGB(r);
+    g = substractRGB(g);
+    b = substractRGB(b);
+  } else if (cmd == "brighter") {
+    r = min(r + 80, 255);
+    g = min(g + 80, 255);
+    b = min(b + 80, 255);
   }
+
+  // LED aktualisieren
+  showColor(r, g, b);
+
+  // Bestätigung senden
+  Serial.println("Command executed: " + cmd);
+}
